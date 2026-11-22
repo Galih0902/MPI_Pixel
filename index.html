@@ -43,6 +43,9 @@ body.stu{padding:0;overflow:hidden;touch-action:none}body.stu #app{display:none}
 .ans i{font-style:normal;background:#000;color:#fff;padding:2px 5px}.a0{background:#ef7d57}.a1{background:#41a6f6}.a2{background:#73eff7}.a3{background:#ffcd75}.ans.ok{background:var(--g);color:#fff}.ans.no{background:var(--r);color:#fff}.ans.dm{opacity:.35}
 </style></head><body><div id="app"></div><canvas id="cv"></canvas><div id="ui"></div><button id="fsb" class="btn s" onclick="tFS()" title="Layar penuh">⛶</button><div id="ts"></div>
 <script>
+/* ===== PASSWORD GURU: ubah nilai di bawah ini (hanya terlihat di source index.html) ===== */
+const PASS='010203';
+let UL=false;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mem={},store={get(k){try{return localStorage.getItem(k)}catch(e){return mem[k]??null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}},del(k){try{localStorage.removeItem(k)}catch(e){delete mem[k]}}};
@@ -101,11 +104,16 @@ const persist=()=>store.set('pa_bank',JSON.stringify(bank)),sv=()=>store.set('pa
 function groups(){const g={};bank.forEach(s=>(g[s.m]=g[s.m]||[]).push(s));return g}
 
 /* ===== TAMPILAN GURU ===== */
+function bankOpen(){if(UL)go('bank');else go('lock')}
+function vLock(){return `<div class=c><div class=hero>🔒</div><div class=logo style="font-size:18px">BANK SOAL</div><p class=sm>Khusus guru.<br>Masukkan password untuk melanjutkan.</p><input id=pw class=in type=password inputmode=numeric autocomplete=off placeholder="Password" onkeydown="if(event.key=='Enter')pwCheck()"><button class="btn g" onclick="pwCheck()">🔓 BUKA</button><button class="btn" onclick="go('home')">◀ KEMBALI</button></div>`}
+function pwCheck(){const v=($('pw')||{}).value||'';if(v===PASS){UL=true;go('bank')}else{toast('Password salah');const e=$('pw');if(e){e.value='';e.focus()}}}
+function vJoin(){return `<div class=c><div class=hero>🧒</div><div class=logo style="font-size:18px">MASUK<br>SISWA</div><p class=sm>Masukkan kode ruangan dari guru,<br>atau pindai QR code di layar guru.</p><input id=jc class=in maxlength=4 style="text-align:center;font-size:22px;letter-spacing:6px;text-transform:uppercase" placeholder="KODE" autocomplete=off oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" onkeydown="if(event.key=='Enter')joinGo()"><button class="btn g" onclick="joinGo()">🚀 MASUK RUANGAN</button><button class="btn" onclick="go('home')">◀ KEMBALI</button></div>`}
+function joinGo(){const v=(($('jc')||{}).value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(v.length<4)return toast('Masukkan 4 karakter kode ruangan');location.search='?join='+v}
 let view='home',tab='list',editI=-1,flt='',srch='',sel=new Set(),OH=null,QRt=0;
 function go(v){view=v;draw()}
-function draw(){if(JOIN)return;const w=view=='world';document.body.classList.toggle('stu',w);if(w)return tUi();$('app').innerHTML=({home:vHome,bank:vBank,room:vRoom})[view]();window.scrollTo(0,0)}
+function draw(){if(JOIN)return;const w=view=='world';document.body.classList.toggle('stu',w);if(w)return tUi();$('app').innerHTML=({home:vHome,bank:vBank,room:vRoom,lock:vLock,join:vJoin})[view]();window.scrollTo(0,0)}
 function vHome(){return `<div class=c><div class=logo>PIXEL<br>ADVENTURE</div><div class=hero>🧭</div><p class=sm>Siswa berpetualang di HP masing-masing,<br>menyelesaikan misi dan kuis dari guru.</p>
-<button class="btn g" onclick="roomOpen()">🏕 BUKA RUANGAN PETUALANGAN</button><button class="btn b" onclick="go('bank')">📚 BANK SOAL / EDIT / IMPOR</button>
+<button class="btn g" onclick="roomOpen()">🏕 BUKA RUANGAN PETUALANGAN</button><button class="btn b" onclick="bankOpen()">🔒 BANK SOAL / EDIT / IMPOR</button><button class="btn y" onclick="go('join')">🧒 MASUK SEBAGAI SISWA</button>
 <p class=sm>${bank.length} soal • ${Object.keys(groups()).length} misi</p></div>`}
 const vis=()=>bank.map((s,i)=>i).filter(i=>{const s=bank[i];return(!flt||s.m==flt)&&(!srch||(s.q+' '+s.o.join(' ')).toLowerCase().includes(srch.toLowerCase()))});
 function vRows(){const v=vis();return `<div class=sm style="margin:6px 0">${v.length} dari ${bank.length} soal • ${sel.size} dipilih</div>`+v.map(i=>{const s=bank[i];return `<div class=row><input type=checkbox ${sel.has(i)?'checked':''} onchange="tgSel(${i},this.checked)"><div class=rq><small>#${i+1} • ${esc(s.m)}</small><br>${esc(s.q)}<br><small>✔ ${'ABCD'[s.a]}. ${esc(s.o[s.a])}</small></div><button class="btn s" onclick="edit(${i})">✏️</button><button class="btn s r" onclick="arm('d${i}',()=>delQ(${i}),'Ketuk 🗑 lagi untuk hapus')">🗑</button></div>`}).join('')}
@@ -119,7 +127,7 @@ else b=`<div class=fm><p class=sm>Satu soal per baris, pisahkan dengan <span sty
 <label>ATAU FILE .txt / .csv / .tsv</label><input type=file accept=".txt,.csv,.tsv,text/plain" onchange="loadFile(this)" class=in>
 <div class=acts><button class="btn y" onclick="$('im').value=EX;updInfo()">📄 TEMPLATE</button><button class="btn b" onclick="expo()">📤 MUAT BANK SAAT INI</button><button class="btn" onclick="cp()">📋 SALIN</button></div>
 <div class=acts><button class="btn g" onclick="impor(false)">➕ IMPOR (TAMBAH)</button><button class="btn r" onclick="arm('rep',()=>impor(true),'Ketuk lagi: semua soal lama akan DIGANTI')">♻ IMPOR (GANTI SEMUA)</button></div></div>`;
-return `<div><div class=top><button class="btn s" onclick="go('home')">◀</button><span>📚 BANK SOAL</span><span>${bank.length} soal</span></div><div class=tabs>${tb}</div>${b}</div>`}
+return `<div><div class=top><button class="btn s" onclick="UL=false;go('home')">◀</button><span>📚 BANK SOAL</span><span>${bank.length} soal</span></div><div class=tabs>${tb}</div>${b}</div>`}
 function refRows(){$('rows').innerHTML=vRows()}
 function setTab(k){if(k!='form')editI=-1;tab=k;draw()}
 function tgSel(i,c){c?sel.add(i):sel.delete(i);refRows()}
